@@ -39,11 +39,9 @@ const Home = (): JSX.Element => {
     }
 
     loadProducts();
-    console.log('cc: ', cartItemsAmount);
   }, []);
 
   function handleAddProduct(id: number) {
-    console.log("handle")
     addProduct(id);
   }
 
