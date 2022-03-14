@@ -43,14 +43,16 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
       let isProductNewOnCart = true;
 
       if(productOnCart) {
-        stockAmount = stock.amount - productOnCart.amount;
-        productOnCart.amount += 1;
+        stockAmount = stockAmount - productOnCart.amount;
         isProductNewOnCart = false;
       }
-      if(stockAmount <= 0){
+      if(stockAmount < 0){
         toast.error('Quantidade solicitada fora de estoque');
         return;
       }
+
+      if(productOnCart && !isProductNewOnCart)
+        productOnCart.amount++;
 
       if (isProductNewOnCart) {
         const product = (await api.get(`products/${productId}`)).data;
@@ -75,6 +77,11 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const removeProduct = (productId: number) => {
     try {
+      const doesProductExists = cart.some(p => p.id == productId);
+
+      if(!doesProductExists)
+        throw 'error'
+
       const cartWithoutProduct = cart.filter(p => p.id != productId);
       setCart(cartWithoutProduct);
       localStorage.setItem(CART_ITEM_NAME, JSON.stringify(cartWithoutProduct));
@@ -89,9 +96,11 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
   }: UpdateProductAmount) => {
     try {
       const stock = (await api.get(`stock/${productId}`)).data;
-      const stockAmount = stock.amount - amount;
+      const productOnCart = cart.find(p => p.id == productId);
+      const productOnCartQuantity = productOnCart ? productOnCart.amount : 0;
+      const stockAmountAfterUpdate = (stock.amount - productOnCartQuantity) - amount;
 
-      if (stockAmount < 0) {
+      if (stockAmountAfterUpdate < 0) {
         toast.error('Quantidade solicitada fora de estoque');
         return; 
       }
@@ -99,7 +108,7 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
       const updatedCart = [...cart];
       const product = updatedCart.find(p => p.id === productId);
 
-      if (!product || product.amount <= 0)
+      if (!product || amount <= 0)
         return;
 
       product.amount = + amount;
